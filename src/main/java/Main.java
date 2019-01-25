@@ -38,7 +38,7 @@ public class Main {
                 String traveler = ticketPage.select(".var_order_reisender>span:first-child").first().text();
                 traveler = removeString(traveler, " ");
                 String route = ticketPage.select(".mod_breadcrumb_button_title[itemprop=name]").first().text();
-                route = removeString(route, " ", ",");
+                route = removeString(route, " ", ",", "\\", "/");
                 SimpleDateFormat sourceFormat = new SimpleDateFormat("E, d.M.y");
                 Date orderDate = sourceFormat.parse(orderDateString);
                 String price = ticketPage.select(".mod_confirmation_total_price_value").first().text();
