@@ -28,26 +28,28 @@ public class Main {
             Pattern urlPattern = Pattern.compile("https://www\\.sbb\\.ch/en/buying/pages/bestellung/bestellungUebersicht\\.xhtml\\?id=(?:[\\w-])+");
             Matcher matcher = urlPattern.matcher(mails);
             while (matcher.find()) {
-                String urlString = matcher.group();
+                String urlString = cleanURL(matcher.group());
 //                Parse the page
                 CookieManager cookieManager = new CookieManager();
                 CookieHandler.setDefault(cookieManager);
                 Connection.Response response = Jsoup.connect(urlString).method(Connection.Method.GET).execute();
                 Document ticketPage = response.parse();
                 String orderDateString = ticketPage.select("dd:first-of-type").first().text();
+                String validDateString = ticketPage.select(".var_order_gueltigkeit > span").first().text().replaceAll("Valid:\\s","");
                 String traveler = ticketPage.select(".var_order_reisender>span:first-child").first().text();
                 traveler = removeString(traveler, " ");
                 String route = ticketPage.select(".mod_breadcrumb_button_title[itemprop=name]").first().text();
                 route = removeString(route, " ", ",", "\\", "/");
                 SimpleDateFormat sourceFormat = new SimpleDateFormat("E, d.M.y");
                 Date orderDate = sourceFormat.parse(orderDateString);
+                Date validDate = sourceFormat.parse(validDateString);
                 String price = ticketPage.select(".mod_confirmation_total_price_value").first().text();
                 price = removeString(price, " ");
 //                Download and write the pdf
                 URL pdfUrl = new URL("https://www.sbb.ch/en/buying/beleg/billett-email/.pdf");
                 IOUtils.toByteArray(pdfUrl.openStream());
                 SimpleDateFormat targetFormat = new SimpleDateFormat("yy-MM-dd");
-                String pdfName = String.format("SBB-Ticket_%s_%s-%s-%s.pdf", targetFormat.format(orderDate), traveler, route, price);
+                String pdfName = String.format("SBB-Ticket_%s_%s-%s-%s.pdf", targetFormat.format(validDate), traveler, route, price);
                 File pdfFile = new File(pdfName);
                 FileOutputStream outputStream = new FileOutputStream(pdfFile);
                 outputStream.write(IOUtils.toByteArray(pdfUrl.openStream()));
@@ -56,6 +58,15 @@ public class Main {
         } catch (IOException|ParseException e) {
             e.printStackTrace();
         }
+    }
+
+    /**
+     * Replaces =3D with =
+     * @param url The unclean URL
+     * @return
+     */
+    private static String cleanURL(String url) {
+        return url.replaceAll("=3D", "=");
     }
 
     private static String removeString(String subject, String... removables) {
